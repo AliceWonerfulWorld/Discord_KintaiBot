@@ -1,6 +1,17 @@
 {
   "name": "@discord-kintai/web",
   "private": true,
+  "dependencies": {
+    "next": "16.2.2",
+    "react": "19.0.0",
+    "react-dom": "19.0.0"
+  },
+  "devDependencies": {
+    "@types/node": "22.15.29",
+    "@types/react": "19.0.12",
+    "@types/react-dom": "19.0.4",
+    "typescript": "5.8.3"
+  },
   "scripts": {
     "dev": "next dev",
     "build": "next build",

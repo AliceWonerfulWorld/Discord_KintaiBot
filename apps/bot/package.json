@@ -1,6 +1,16 @@
 {
   "name": "@discord-kintai/bot",
   "private": true,
+  "dependencies": {
+    "discord.js": "14.26.0",
+    "dotenv": "16.5.0",
+    "@supabase/supabase-js": "2.49.4"
+  },
+  "devDependencies": {
+    "@types/node": "22.15.29",
+    "tsx": "4.19.4",
+    "typescript": "5.8.3"
+  },
   "scripts": {
     "dev": "tsx watch src/index.ts",
     "build": "tsc -p tsconfig.json",
