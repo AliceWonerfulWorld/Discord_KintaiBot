@@ -1,8 +1,31 @@
-export default function Page() {
+import { redirect } from "next/navigation";
+import { hasSupabaseEnv } from "@/lib/supabase/env";
+import { createServerSupabaseClient } from "@/lib/supabase/server";
+
+export default async function Page() {
+  if (!hasSupabaseEnv()) {
+    redirect("/setup");
+  }
+
+  const supabase = await createServerSupabaseClient();
+  const {
+    data: { user }
+  } = await supabase.auth.getUser();
+
+  if (!user) {
+    redirect("/login");
+  }
+
   return (
-    <main>
+    <main className="container">
       <h1>Discord Kintai Bot</h1>
-      <p>勤怠管理のWeb画面をここから作成します。</p>
+      <p>ログイン中: {user.user_metadata.full_name ?? user.email ?? user.id}</p>
+      <p>Discord OAuth (Supabase Auth経由) で認証できています。</p>
+
+      <form action="/auth/logout" method="post">
+        <button type="submit">ログアウト</button>
+      </form>
     </main>
   );
 }
+
