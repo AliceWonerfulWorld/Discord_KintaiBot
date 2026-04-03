@@ -3,6 +3,7 @@
   "compilerOptions": {
     "outDir": "dist",
     "ignoreDeprecations": "6.0",
+    "types": ["node"],
     "baseUrl": ".",
     "paths": {
       "@shared-types/*": ["../../packages/shared-types/src/*"]

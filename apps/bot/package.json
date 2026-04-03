@@ -9,7 +9,7 @@
   "devDependencies": {
     "@types/node": "22.15.29",
     "tsx": "4.19.4",
-    "typescript": "5.8.3"
+    "typescript": "6.0.2"
   },
   "scripts": {
     "dev": "tsx watch src/index.ts",
