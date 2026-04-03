@@ -15,6 +15,7 @@ create table if not exists public.users (
 create table if not exists public.attendances (
   id uuid primary key default gen_random_uuid(),
   user_id uuid not null references public.users(id) on delete cascade,
+  guild_id text,
   target_date date not null,
   clock_in_at timestamptz not null,
   clock_out_at timestamptz,
@@ -25,6 +26,9 @@ create table if not exists public.attendances (
 
 create index if not exists attendances_user_date_idx
   on public.attendances (user_id, target_date desc);
+
+create index if not exists attendances_guild_date_idx
+  on public.attendances (guild_id, target_date desc);
 
 create table if not exists public.breaks (
   id uuid primary key default gen_random_uuid(),

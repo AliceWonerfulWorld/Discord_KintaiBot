@@ -257,7 +257,7 @@ export default async function Page({ searchParams }: PageProps) {
           <article className="dash-empty">
             <p className="dash-empty-title">まだ今月の打刻はありません</p>
             <p className="dash-empty-text">
-              Discordで /kintai 開始 を実行すると、ここに記録が表示されます。
+              Discordで /kintai start を実行すると、ここに記録が表示されます。
             </p>
           </article>
         ) : null}
