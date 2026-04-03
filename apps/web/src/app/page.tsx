@@ -10,6 +10,12 @@ type AttendanceRow = {
   status: string;
 };
 
+type BreakRow = {
+  attendance_id: string;
+  break_start_at: string;
+  break_end_at: string | null;
+};
+
 const STATUS_OPTIONS = ["all", "working", "on_break", "finished"] as const;
 type StatusFilter = (typeof STATUS_OPTIONS)[number];
 
@@ -41,6 +47,19 @@ function formatDuration(totalMinutes: number) {
   return `${hours}時間${minutes}分`;
 }
 
+function statusToJa(status: string) {
+  switch (status) {
+    case "working":
+      return "勤務中";
+    case "on_break":
+      return "休憩中";
+    case "finished":
+      return "退勤済";
+    default:
+      return status;
+  }
+}
+
 function getWorkedMinutes(row: AttendanceRow) {
   if (!row.clock_out_at) {
     return 0;
@@ -48,6 +67,17 @@ function getWorkedMinutes(row: AttendanceRow) {
 
   const start = new Date(row.clock_in_at).getTime();
   const end = new Date(row.clock_out_at).getTime();
+  const diff = Math.floor((end - start) / (1000 * 60));
+  return diff > 0 ? diff : 0;
+}
+
+function getBreakMinutes(row: BreakRow) {
+  if (!row.break_end_at) {
+    return 0;
+  }
+
+  const start = new Date(row.break_start_at).getTime();
+  const end = new Date(row.break_end_at).getTime();
   const diff = Math.floor((end - start) / (1000 * 60));
   return diff > 0 ? diff : 0;
 }
@@ -98,7 +128,35 @@ export default async function Page({ searchParams }: PageProps) {
   const { data: attendanceRows, error: attendanceError } = await attendanceQuery;
 
   const rows = (attendanceRows ?? []) as AttendanceRow[];
-  const totalMinutes = rows.reduce((sum, row) => sum + getWorkedMinutes(row), 0);
+  const attendanceIds = rows.map((row) => row.id);
+  const breakMinutesByAttendanceId = new Map<string, number>();
+  let breaksErrorMessage: string | null = null;
+
+  if (attendanceIds.length > 0) {
+    const { data: breakRows, error: breaksError } = await supabase
+      .from("breaks")
+      .select("attendance_id,break_start_at,break_end_at")
+      .eq("user_id", user.id)
+      .in("attendance_id", attendanceIds);
+
+    if (breaksError) {
+      breaksErrorMessage = breaksError.message;
+    } else {
+      for (const breakRow of (breakRows ?? []) as BreakRow[]) {
+        const currentTotal = breakMinutesByAttendanceId.get(breakRow.attendance_id) ?? 0;
+        breakMinutesByAttendanceId.set(
+          breakRow.attendance_id,
+          currentTotal + getBreakMinutes(breakRow)
+        );
+      }
+    }
+  }
+
+  const totalMinutes = rows.reduce((sum, row) => {
+    const workMinutes = getWorkedMinutes(row);
+    const breakMinutes = breakMinutesByAttendanceId.get(row.id) ?? 0;
+    return sum + Math.max(0, workMinutes - breakMinutes);
+  }, 0);
 
   return (
     <main className="dash-shell">
@@ -137,7 +195,9 @@ export default async function Page({ searchParams }: PageProps) {
           </article>
           <article className="dash-metric">
             <p className="dash-metric-label">状態フィルタ</p>
-            <p className="dash-metric-value">{statusFilter === "all" ? "すべて" : statusFilter}</p>
+            <p className="dash-metric-value">
+              {statusFilter === "all" ? "すべて" : statusToJa(statusFilter)}
+            </p>
           </article>
         </section>
 
@@ -162,9 +222,9 @@ export default async function Page({ searchParams }: PageProps) {
               </label>
               <select id="status" name="status" defaultValue={statusFilter} className="dash-filter-select">
                 <option value="all">すべて</option>
-                <option value="working">working</option>
-                <option value="on_break">on_break</option>
-                <option value="finished">finished</option>
+                <option value="working">勤務中</option>
+                <option value="on_break">休憩中</option>
+                <option value="finished">退勤済</option>
               </select>
               <button type="submit" className="dash-filter-button">
                 適用
@@ -176,6 +236,12 @@ export default async function Page({ searchParams }: PageProps) {
         {attendanceError ? (
           <p className="dash-attendance-error">
             勤怠データの取得に失敗しました: {attendanceError.message}
+          </p>
+        ) : null}
+
+        {!attendanceError && breaksErrorMessage ? (
+          <p className="dash-attendance-warn">
+            休憩データの取得に失敗したため、勤務時間合計は休憩控除なしで表示される可能性があります: {breaksErrorMessage}
           </p>
         ) : null}
 
@@ -205,7 +271,7 @@ export default async function Page({ searchParams }: PageProps) {
                     <td>{formatDate(row.target_date)}</td>
                     <td>{formatDateTime(row.clock_in_at)}</td>
                     <td>{formatDateTime(row.clock_out_at)}</td>
-                    <td>{row.status}</td>
+                    <td>{statusToJa(row.status)}</td>
                   </tr>
                 ))}
               </tbody>
