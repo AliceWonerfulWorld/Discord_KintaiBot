@@ -1,0 +1,2 @@
+# Discord_KintaiBot
+チーム開発時に勤怠を管理できるDiscord_Botです。
