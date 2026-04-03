@@ -1,5 +1,6 @@
 import {
   ChatInputCommandInteraction,
+  PermissionsBitField,
   SlashCommandBuilder
 } from "discord.js";
 import {
@@ -8,6 +9,7 @@ import {
   startAttendance,
   toggleBreak
 } from "../lib/attendance";
+import { getBotRuntimeConfig } from "../config";
 
 export const kintaiCommand = new SlashCommandBuilder()
   .setName("kintai")
@@ -24,6 +26,26 @@ export const kintaiCommand = new SlashCommandBuilder()
   .addSubcommand((subcommand) =>
     subcommand.setName("team").setDescription("このサーバーの今月の勤怠集計を表示します")
   );
+
+async function canViewTeamSummary(interaction: ChatInputCommandInteraction) {
+  const isAdmin = interaction.memberPermissions?.has(PermissionsBitField.Flags.Administrator);
+  if (isAdmin) {
+    return true;
+  }
+
+  const { teamViewerRoleIds } = getBotRuntimeConfig();
+  if (teamViewerRoleIds.length === 0) {
+    return false;
+  }
+
+  const guild = interaction.guild;
+  if (!guild) {
+    return false;
+  }
+
+  const member = await guild.members.fetch(interaction.user.id);
+  return teamViewerRoleIds.some((roleId) => member.roles.cache.has(roleId));
+}
 
 export async function handleKintaiCommand(interaction: ChatInputCommandInteraction) {
   const subcommand = interaction.options.getSubcommand();
@@ -55,6 +77,15 @@ export async function handleKintaiCommand(interaction: ChatInputCommandInteracti
       result = await toggleBreak(discordUserId, guildId);
       break;
     case "team":
+      if (!(await canViewTeamSummary(interaction))) {
+        result = {
+          ok: false,
+          message:
+            "このコマンドは管理者のみ利用できます。必要に応じて DISCORD_TEAM_VIEWER_ROLE_IDS を設定してください。"
+        };
+        break;
+      }
+
       result = await getGuildTeamSummary(guildId);
       break;
     default:

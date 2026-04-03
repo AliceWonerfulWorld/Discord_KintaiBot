@@ -55,8 +55,12 @@ Bot を動かすときは `apps/bot/.env.example` を参考に以下を設定し
 - DISCORD_BOT_TOKEN
 - DISCORD_CLIENT_ID
 - DISCORD_GUILD_ID（開発時は任意。入れるとギルドコマンドとして即反映しやすいです）
+- DISCORD_TEAM_VIEWER_ROLE_IDS（任意。`/kintai team` を許可するロールIDをカンマ区切りで指定）
 - SUPABASE_URL
 - SUPABASE_SERVICE_ROLE_KEY
+
+`/kintai team` は、Discord サーバー管理者（Administrator）または
+`DISCORD_TEAM_VIEWER_ROLE_IDS` で指定したロールを持つメンバーだけ実行できます。
 
 ## Bot 招待 URL
 
