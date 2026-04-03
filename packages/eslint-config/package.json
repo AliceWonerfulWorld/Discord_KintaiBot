@@ -1,0 +1,5 @@
+{
+  "name": "@discord-kintai/eslint-config",
+  "private": true,
+  "main": "index.js"
+}

@@ -1,0 +1,14 @@
+{
+  "name": "discord-kintai-bot",
+  "private": true,
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "build": "npm run build -w @discord-kintai/web && npm run build -w @discord-kintai/bot && npm run build -w @discord-kintai/shared-types",
+    "dev:web": "npm run dev -w @discord-kintai/web",
+    "dev:bot": "npm run dev -w @discord-kintai/bot",
+    "typecheck": "npm run typecheck -w @discord-kintai/web && npm run typecheck -w @discord-kintai/bot && npm run typecheck -w @discord-kintai/shared-types"
+  }
+}
