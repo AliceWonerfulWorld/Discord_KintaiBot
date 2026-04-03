@@ -2,10 +2,66 @@ import { redirect } from "next/navigation";
 import { hasSupabaseEnv } from "@/lib/supabase/env";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 
-export default async function Page() {
+type AttendanceRow = {
+  id: string;
+  target_date: string;
+  clock_in_at: string;
+  clock_out_at: string | null;
+  status: string;
+};
+
+const STATUS_OPTIONS = ["all", "working", "on_break", "finished"] as const;
+type StatusFilter = (typeof STATUS_OPTIONS)[number];
+
+type PageProps = {
+  searchParams: Promise<{ status?: string }>;
+};
+
+function formatDate(dateString: string) {
+  return new Date(dateString).toLocaleDateString("ja-JP", {
+    month: "2-digit",
+    day: "2-digit"
+  });
+}
+
+function formatDateTime(dateString: string | null) {
+  if (!dateString) {
+    return "-";
+  }
+
+  return new Date(dateString).toLocaleTimeString("ja-JP", {
+    hour: "2-digit",
+    minute: "2-digit"
+  });
+}
+
+function formatDuration(totalMinutes: number) {
+  const hours = Math.floor(totalMinutes / 60);
+  const minutes = totalMinutes % 60;
+  return `${hours}時間${minutes}分`;
+}
+
+function getWorkedMinutes(row: AttendanceRow) {
+  if (!row.clock_out_at) {
+    return 0;
+  }
+
+  const start = new Date(row.clock_in_at).getTime();
+  const end = new Date(row.clock_out_at).getTime();
+  const diff = Math.floor((end - start) / (1000 * 60));
+  return diff > 0 ? diff : 0;
+}
+
+export default async function Page({ searchParams }: PageProps) {
   if (!hasSupabaseEnv()) {
     redirect("/setup");
   }
+
+  const params = await searchParams;
+  const rawStatus = params.status;
+  const statusFilter: StatusFilter = STATUS_OPTIONS.includes(rawStatus as StatusFilter)
+    ? (rawStatus as StatusFilter)
+    : "all";
 
   const supabase = await createServerSupabaseClient();
   const {
@@ -18,6 +74,31 @@ export default async function Page() {
 
   const displayName = user.user_metadata.full_name ?? user.email ?? user.id;
   const initial = displayName.charAt(0).toUpperCase();
+
+  const now = new Date();
+  const monthStart = new Date(now.getFullYear(), now.getMonth(), 1)
+    .toISOString()
+    .slice(0, 10);
+  const monthEnd = new Date(now.getFullYear(), now.getMonth() + 1, 0)
+    .toISOString()
+    .slice(0, 10);
+
+  let attendanceQuery = supabase
+    .from("attendances")
+    .select("id,target_date,clock_in_at,clock_out_at,status")
+    .eq("user_id", user.id)
+    .gte("target_date", monthStart)
+    .lte("target_date", monthEnd)
+    .order("target_date", { ascending: false });
+
+  if (statusFilter !== "all") {
+    attendanceQuery = attendanceQuery.eq("status", statusFilter);
+  }
+
+  const { data: attendanceRows, error: attendanceError } = await attendanceQuery;
+
+  const rows = (attendanceRows ?? []) as AttendanceRow[];
+  const totalMinutes = rows.reduce((sum, row) => sum + getWorkedMinutes(row), 0);
 
   return (
     <main className="dash-shell">
@@ -50,6 +131,14 @@ export default async function Page() {
             <p className="dash-metric-label">Session Route</p>
             <p className="dash-metric-value">Supabase OAuth Callback</p>
           </article>
+          <article className="dash-metric">
+            <p className="dash-metric-label">合計勤務時間（表示中）</p>
+            <p className="dash-metric-value">{formatDuration(totalMinutes)}</p>
+          </article>
+          <article className="dash-metric">
+            <p className="dash-metric-label">状態フィルタ</p>
+            <p className="dash-metric-value">{statusFilter === "all" ? "すべて" : statusFilter}</p>
+          </article>
         </section>
 
         <form action="/auth/logout" method="post" className="dash-actions">
@@ -57,6 +146,72 @@ export default async function Page() {
             ログアウト
           </button>
         </form>
+      </section>
+
+      <section className="dash-card dash-attendance">
+        <header className="dash-attendance-header">
+          <div>
+            <p className="dash-kicker">THIS MONTH</p>
+            <h2 className="dash-attendance-title">今月の出退勤レコード</h2>
+          </div>
+          <div className="dash-attendance-controls">
+            <span className="dash-attendance-count">{rows.length}件</span>
+            <form method="get" className="dash-filter-form">
+              <label htmlFor="status" className="dash-filter-label">
+                状態
+              </label>
+              <select id="status" name="status" defaultValue={statusFilter} className="dash-filter-select">
+                <option value="all">すべて</option>
+                <option value="working">working</option>
+                <option value="on_break">on_break</option>
+                <option value="finished">finished</option>
+              </select>
+              <button type="submit" className="dash-filter-button">
+                適用
+              </button>
+            </form>
+          </div>
+        </header>
+
+        {attendanceError ? (
+          <p className="dash-attendance-error">
+            勤怠データの取得に失敗しました: {attendanceError.message}
+          </p>
+        ) : null}
+
+        {!attendanceError && rows.length === 0 ? (
+          <article className="dash-empty">
+            <p className="dash-empty-title">まだ今月の打刻はありません</p>
+            <p className="dash-empty-text">
+              Discordで /kintai 開始 を実行すると、ここに記録が表示されます。
+            </p>
+          </article>
+        ) : null}
+
+        {!attendanceError && rows.length > 0 ? (
+          <div className="dash-table-wrap">
+            <table className="dash-table">
+              <thead>
+                <tr>
+                  <th>日付</th>
+                  <th>出勤</th>
+                  <th>退勤</th>
+                  <th>状態</th>
+                </tr>
+              </thead>
+              <tbody>
+                {rows.map((row) => (
+                  <tr key={row.id}>
+                    <td>{formatDate(row.target_date)}</td>
+                    <td>{formatDateTime(row.clock_in_at)}</td>
+                    <td>{formatDateTime(row.clock_out_at)}</td>
+                    <td>{row.status}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        ) : null}
       </section>
     </main>
   );
