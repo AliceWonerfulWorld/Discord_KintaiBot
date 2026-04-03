@@ -16,8 +16,16 @@ export async function startBot() {
     await onReady(client);
   });
 
+  client.on("error", (error) => {
+    console.error("Discord client error", error);
+  });
+
   client.on("interactionCreate", async (interaction) => {
-    await onInteractionCreate(interaction);
+    try {
+      await onInteractionCreate(interaction);
+    } catch (error) {
+      console.error("Unhandled interaction error", error);
+    }
   });
 
   await client.login(botToken);
