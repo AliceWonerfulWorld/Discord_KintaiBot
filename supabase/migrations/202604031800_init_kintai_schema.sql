@@ -84,6 +84,7 @@ $$;
 
 alter table public.users enable row level security;
 alter table public.attendances enable row level security;
+alter table public.breaks enable row level security;
 
 drop policy if exists users_select_self_or_admin on public.users;
 create policy users_select_self_or_admin
@@ -119,6 +120,25 @@ with check (user_id = auth.uid() or public.is_admin());
 drop policy if exists attendances_update_self_or_admin on public.attendances;
 create policy attendances_update_self_or_admin
 on public.attendances
+for update
+using (user_id = auth.uid() or public.is_admin())
+with check (user_id = auth.uid() or public.is_admin());
+
+drop policy if exists breaks_select_self_or_admin on public.breaks;
+create policy breaks_select_self_or_admin
+on public.breaks
+for select
+using (user_id = auth.uid() or public.is_admin());
+
+drop policy if exists breaks_insert_self_or_admin on public.breaks;
+create policy breaks_insert_self_or_admin
+on public.breaks
+for insert
+with check (user_id = auth.uid() or public.is_admin());
+
+drop policy if exists breaks_update_self_or_admin on public.breaks;
+create policy breaks_update_self_or_admin
+on public.breaks
 for update
 using (user_id = auth.uid() or public.is_admin())
 with check (user_id = auth.uid() or public.is_admin());

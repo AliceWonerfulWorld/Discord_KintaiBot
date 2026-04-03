@@ -671,6 +671,11 @@ button:active {
   background: #fbfdff;
 }
 
+.dash-col-duration {
+  text-align: right !important;
+  white-space: nowrap;
+}
+
 .setup-pulse {
   width: 10px;
   height: 10px;

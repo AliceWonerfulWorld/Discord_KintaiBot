@@ -47,6 +47,14 @@ function formatDuration(totalMinutes: number) {
   return `${hours}時間${minutes}分`;
 }
 
+function formatDurationCell(totalMinutes: number | null) {
+  if (totalMinutes === null) {
+    return "-";
+  }
+
+  return formatDuration(totalMinutes);
+}
+
 function statusToJa(status: string) {
   switch (status) {
     case "working":
@@ -263,17 +271,27 @@ export default async function Page({ searchParams }: PageProps) {
                   <th>出勤</th>
                   <th>退勤</th>
                   <th>状態</th>
+                  <th className="dash-col-duration">正味勤務</th>
                 </tr>
               </thead>
               <tbody>
-                {rows.map((row) => (
-                  <tr key={row.id}>
-                    <td>{formatDate(row.target_date)}</td>
-                    <td>{formatDateTime(row.clock_in_at)}</td>
-                    <td>{formatDateTime(row.clock_out_at)}</td>
-                    <td>{statusToJa(row.status)}</td>
-                  </tr>
-                ))}
+                {rows.map((row) => {
+                  const workedMinutes = getWorkedMinutes(row);
+                  const breakMinutes = breakMinutesByAttendanceId.get(row.id) ?? 0;
+                  const netMinutes = row.clock_out_at
+                    ? Math.max(0, workedMinutes - breakMinutes)
+                    : null;
+
+                  return (
+                    <tr key={row.id}>
+                      <td>{formatDate(row.target_date)}</td>
+                      <td>{formatDateTime(row.clock_in_at)}</td>
+                      <td>{formatDateTime(row.clock_out_at)}</td>
+                      <td>{statusToJa(row.status)}</td>
+                      <td className="dash-col-duration">{formatDurationCell(netMinutes)}</td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           </div>
