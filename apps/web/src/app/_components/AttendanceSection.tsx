@@ -28,39 +28,33 @@ type ModalState =
 
 // --- Helpers ---
 
+const JST_DATE_OPTS: Intl.DateTimeFormatOptions = {
+  timeZone: "Asia/Tokyo",
+  year: "numeric",
+  month: "2-digit",
+  day: "2-digit"
+};
+
+const JST_DATETIME_OPTS: Intl.DateTimeFormatOptions = {
+  ...JST_DATE_OPTS,
+  hour: "2-digit",
+  minute: "2-digit"
+};
+
+function formatJst(date: Date, opts: Intl.DateTimeFormatOptions): string {
+  return new Intl.DateTimeFormat("sv-SE", opts).format(date);
+}
+
 function toJstDatetimeLocal(utcStr: string): string {
-  return new Intl.DateTimeFormat("sv-SE", {
-    timeZone: "Asia/Tokyo",
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit",
-    hour: "2-digit",
-    minute: "2-digit"
-  })
-    .format(new Date(utcStr))
-    .replace(" ", "T");
+  return formatJst(new Date(utcStr), JST_DATETIME_OPTS).replace(" ", "T");
 }
 
 function todayJst(): string {
-  return new Intl.DateTimeFormat("sv-SE", {
-    timeZone: "Asia/Tokyo",
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit"
-  }).format(new Date());
+  return formatJst(new Date(), JST_DATE_OPTS);
 }
 
 function nowJstDatetimeLocal(): string {
-  return new Intl.DateTimeFormat("sv-SE", {
-    timeZone: "Asia/Tokyo",
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit",
-    hour: "2-digit",
-    minute: "2-digit"
-  })
-    .format(new Date())
-    .replace(" ", "T");
+  return formatJst(new Date(), JST_DATETIME_OPTS).replace(" ", "T");
 }
 
 function formatDate(dateString: string) {
