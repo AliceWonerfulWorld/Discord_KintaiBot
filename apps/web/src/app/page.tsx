@@ -168,11 +168,23 @@ export default async function Page({ searchParams }: PageProps) {
           </article>
         </section>
 
-        <form action="/auth/logout" method="post" className="dash-actions">
-          <button type="submit" className="dash-logout">
-            ログアウト
-          </button>
-        </form>
+        <div className="dash-actions">
+          {process.env.NEXT_PUBLIC_DISCORD_CLIENT_ID ? (
+            <a
+              href={`https://discord.com/oauth2/authorize?client_id=${process.env.NEXT_PUBLIC_DISCORD_CLIENT_ID}&scope=bot%20applications.commands&permissions=0`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="dash-invite-btn"
+            >
+              Botをサーバーに招待
+            </a>
+          ) : null}
+          <form action="/auth/logout" method="post">
+            <button type="submit" className="dash-logout">
+              ログアウト
+            </button>
+          </form>
+        </div>
       </section>
 
       <AttendanceSection
