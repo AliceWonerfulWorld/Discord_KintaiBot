@@ -53,60 +53,96 @@ function canViewTeam(member: DiscordMember): boolean {
   return roleIds.some((id) => member.roles.includes(id));
 }
 
-function ephemeralReply(content: string) {
+const BASE_URL = process.env.NEXT_PUBLIC_VERCEL_URL
+  ? `https://${process.env.NEXT_PUBLIC_VERCEL_URL}`
+  : process.env.NEXT_PUBLIC_SUPABASE_URL
+    ? `https://discord-kintai-bot-web.vercel.app`
+    : "http://localhost:3000";
+
+const IMAGE_URLS: Record<string, string> = {
+  start:  `${BASE_URL}/kintai-start.png`,
+  end:    `${BASE_URL}/kintai-end.png`,
+  break_start: `${BASE_URL}/kintai-break.png`,
+  break_end:   `${BASE_URL}/kintai-resume.png`,
+};
+
+function textReply(content: string) {
   return Response.json({
     type: CHANNEL_MESSAGE_WITH_SOURCE,
     data: { content }
   });
 }
 
+function embedReply(content: string, imageKey: string) {
+  const imageUrl = IMAGE_URLS[imageKey];
+  return Response.json({
+    type: CHANNEL_MESSAGE_WITH_SOURCE,
+    data: {
+      embeds: [
+        {
+          description: content,
+          image: imageUrl ? { url: imageUrl } : undefined,
+        }
+      ]
+    }
+  });
+}
+
 async function handleKintai(interaction: DiscordInteraction) {
   const guildId = interaction.guild_id;
-  if (!guildId) return ephemeralReply("⚠️ このコマンドはサーバー内でのみ利用できます。");
+  if (!guildId) return textReply("⚠️ このコマンドはサーバー内でのみ利用できます。");
 
   const discordUserId = getUserId(interaction);
-  if (!discordUserId) return ephemeralReply("⚠️ ユーザー情報が取得できませんでした。");
+  if (!discordUserId) return textReply("⚠️ ユーザー情報が取得できませんでした。");
 
   const subcommand = interaction.data?.options?.[0]?.name;
 
-  let result: { ok: boolean; message: string };
-
   switch (subcommand) {
-    case "start":
-      result = await startAttendance(discordUserId, guildId);
-      break;
-    case "end":
-      result = await endAttendance(discordUserId, guildId);
-      break;
-    case "break":
-      result = await toggleBreak(discordUserId, guildId);
-      break;
+    case "start": {
+      const result = await startAttendance(discordUserId, guildId);
+      const prefix = result.ok ? "✅" : "⚠️";
+      return result.ok
+        ? embedReply(`${prefix} ${result.message}`, "start")
+        : textReply(`${prefix} ${result.message}`);
+    }
+    case "end": {
+      const result = await endAttendance(discordUserId, guildId);
+      const prefix = result.ok ? "✅" : "⚠️";
+      return result.ok
+        ? embedReply(`${prefix} ${result.message}`, "end")
+        : textReply(`${prefix} ${result.message}`);
+    }
+    case "break": {
+      const result = await toggleBreak(discordUserId, guildId);
+      const prefix = result.ok ? "✅" : "⚠️";
+      if (!result.ok) return textReply(`${prefix} ${result.message}`);
+      const imageKey = result.message.includes("開始") ? "break_start" : "break_end";
+      return embedReply(`${prefix} ${result.message}`, imageKey);
+    }
     case "team": {
       const member = interaction.member;
       if (!member || !canViewTeam(member)) {
-        return ephemeralReply("⚠️ このコマンドは管理者のみ利用できます。");
+        return textReply("⚠️ このコマンドは管理者のみ利用できます。");
       }
-      result = await getGuildTeamSummary(guildId);
-      break;
+      const result = await getGuildTeamSummary(guildId);
+      const prefix = result.ok ? "✅" : "⚠️";
+      return textReply(`${prefix} ${result.message}`);
     }
     default:
-      return ephemeralReply("⚠️ 未対応のサブコマンドです。");
+      return textReply("⚠️ 未対応のサブコマンドです。");
   }
-
-  const prefix = result.ok ? "✅" : "⚠️";
-  return ephemeralReply(`${prefix} ${result.message}`);
 }
 
 async function handleStatus(interaction: DiscordInteraction) {
   const guildId = interaction.guild_id;
-  if (!guildId) return ephemeralReply("⚠️ このコマンドはサーバー内でのみ利用できます。");
+  if (!guildId) return textReply("⚠️ このコマンドはサーバー内でのみ利用できます。");
 
   const discordUserId = getUserId(interaction);
-  if (!discordUserId) return ephemeralReply("⚠️ ユーザー情報が取得できませんでした。");
+  if (!discordUserId) return textReply("⚠️ ユーザー情報が取得できませんでした。");
 
   const result = await getAttendanceSummary(discordUserId, guildId);
   const prefix = result.ok ? "ℹ️" : "⚠️";
-  return ephemeralReply(`${prefix} ${result.message}`);
+  return textReply(`${prefix} ${result.message}`);
 }
 
 export async function POST(req: Request) {
@@ -142,7 +178,7 @@ export async function POST(req: Request) {
       }
     } catch (error) {
       console.error("Interaction handler error", error);
-      return ephemeralReply("⚠️ コマンドの実行に失敗しました。");
+      return textReply("⚠️ コマンドの実行に失敗しました。");
     }
   }
 
