@@ -15,8 +15,6 @@ const APPLICATION_COMMAND = 2;
 const PONG = 1;
 const CHANNEL_MESSAGE_WITH_SOURCE = 4;
 
-// Message flags
-const EPHEMERAL = 64;
 
 // Administrator permission bit
 const ADMINISTRATOR = BigInt(8);
@@ -58,7 +56,7 @@ function canViewTeam(member: DiscordMember): boolean {
 function ephemeralReply(content: string) {
   return Response.json({
     type: CHANNEL_MESSAGE_WITH_SOURCE,
-    data: { content, flags: EPHEMERAL }
+    data: { content }
   });
 }
 
