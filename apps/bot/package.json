@@ -15,6 +15,7 @@
     "dev": "tsx watch src/index.ts",
     "build": "tsc -p tsconfig.json",
     "start": "node dist/index.js",
+    "register": "tsx src/register.ts",
     "typecheck": "tsc --noEmit"
   }
 }
