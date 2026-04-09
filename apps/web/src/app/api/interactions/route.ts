@@ -15,9 +15,17 @@ const APPLICATION_COMMAND = 2;
 const PONG = 1;
 const CHANNEL_MESSAGE_WITH_SOURCE = 4;
 
-
 // Administrator permission bit
 const ADMINISTRATOR = BigInt(8);
+
+const BASE_URL = process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
+
+const IMAGE_URLS: Record<string, string> = {
+  start:       `${BASE_URL}/kintai-start.png`,
+  end:         `${BASE_URL}/kintai-end.png`,
+  break_start: `${BASE_URL}/kintai-break.png`,
+  break_end:   `${BASE_URL}/kintai-resume.png`,
+};
 
 type DiscordMember = {
   user?: { id: string };
