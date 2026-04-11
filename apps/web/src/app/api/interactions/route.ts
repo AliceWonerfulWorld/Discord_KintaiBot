@@ -61,19 +61,6 @@ function canViewTeam(member: DiscordMember): boolean {
   return roleIds.some((id) => member.roles.includes(id));
 }
 
-const BASE_URL = process.env.NEXT_PUBLIC_VERCEL_URL
-  ? `https://${process.env.NEXT_PUBLIC_VERCEL_URL}`
-  : process.env.NEXT_PUBLIC_SUPABASE_URL
-    ? `https://discord-kintai-bot-web.vercel.app`
-    : "http://localhost:3000";
-
-const IMAGE_URLS: Record<string, string> = {
-  start:  `${BASE_URL}/kintai-start.png`,
-  end:    `${BASE_URL}/kintai-end.png`,
-  break_start: `${BASE_URL}/kintai-break.png`,
-  break_end:   `${BASE_URL}/kintai-resume.png`,
-};
-
 function textReply(content: string) {
   return Response.json({
     type: CHANNEL_MESSAGE_WITH_SOURCE,
